@@ -8,7 +8,11 @@ namespace StorageApp
     {
         static void Main(string[] args)
         {
-            var employeeRepository = new SqlRepository<Employee>(new StorageAppDbContext());
+            // create instance of delegate which points to method EmployeeAdded
+            var itemAdded = new ItemAdded(EmployeeAdded);
+            // EmployeeAdded method will be called every time when employee is added (AddEmployees method)
+            var employeeRepository = new SqlRepository<Employee>(new StorageAppDbContext(),
+                itemAdded);
             AddEmployees(employeeRepository);
             AddManger(employeeRepository);
             GetEmployeeById(employeeRepository);
@@ -21,9 +25,23 @@ namespace StorageApp
             Console.ReadKey();
         }
 
+        private static void EmployeeAdded(object item)
+        {
+            var employee = (Employee)item;
+            Console.WriteLine($"Employee added => {employee.FirstName}");
+        }
+
         private static void AddManger(IWriteRepository<Manager> managerRepository)
         {
-            managerRepository.Add(new Manager { FirstName = "Sara" });
+            Manager saraManager = new Manager { FirstName = "Sara" };
+            var saraManagerCopy = saraManager.Copy<Manager>();
+
+            if(saraManagerCopy != null)
+            {
+                saraManagerCopy.FirstName += "_copy";
+                managerRepository.Add(saraManagerCopy);
+            }
+            managerRepository.Add(saraManager);
             managerRepository.Add(new Manager { FirstName = "Henry" });
             managerRepository.Save();
         }
@@ -45,17 +63,25 @@ namespace StorageApp
 
         private static void AddEmployees(IRepository<Employee> employeeRepository)
         {
-            employeeRepository.Add(new Employee { FirstName = "Julian" });
-            employeeRepository.Add(new Employee { FirstName = "Ola" });
-            employeeRepository.Add(new Employee { FirstName = "Thomas" });
+            var employees = new[]
+            {
+                new Employee { FirstName = "Julian" },
+                new Employee { FirstName = "Ola" },
+                new Employee { FirstName = "Thomas" }
+            };
+            employeeRepository.AddBatch(employees);
             employeeRepository.Save();
         }
 
         private static void AddOrganizations(IRepository<Organization> organizationRepository)
         {
-            organizationRepository.Add(new Organization { FirstName = "Apple" });
-            organizationRepository.Add(new Organization { FirstName = "Microsoft" });
-            organizationRepository.Save();
+            var organizations = new[]
+            {
+                new Organization { FirstName = "Apple" },
+                new Organization { FirstName = "Microsoft" }
+            };
+
+            organizationRepository.AddBatch(organizations);
         }
     }
 }
